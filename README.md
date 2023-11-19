@@ -58,3 +58,7 @@ He spent years on the 3DSMax D3DMesh importer which I still find myself sometime
 Very useful python script which provided information on the proprietary fmod sound bank version 5 format. (FSB5). [Simon's Github](https://github.com/HearthSim/python-fsb5)
 #### Aizzble ('arizzble')
 Continuous support and testing help from aabi, and my partner in building all of [Minecraft Story Mode in Minecraft](https://www.planetminecraft.com/project/mcsm-rebuilt-in-minecraft/) by using my tools and code to convert meshes into Minecraft Java.
+#### TheCherno
+Known for this game engine youtube channel, he also not only taught me C++ very well but also provided the backend GUI framework library <strong>Walnut</strong> which means in one line of code I have a GUI. The GUI library used is the iconic Dear ImGui. [TheCherno Youtube](https://www.youtube.com/channel/UCQ-W1KE9EYfdxhL6S4twUNw)
+#### Other Credit
+Other authors code has been used such as the C++ file dialog helper library NFD and more.
