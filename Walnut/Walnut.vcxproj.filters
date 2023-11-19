@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{C0FF640D-2C14-8DBE-F595-301E616989EF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Input">
+      <UniqueIdentifier>{953A660D-014F-8EBE-CAD0-311E36A48AEF}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Walnut\Application.h" />
+    <ClInclude Include="src\Walnut\EntryPoint.h" />
+    <ClInclude Include="src\Walnut\Image.h" />
+    <ClInclude Include="src\Walnut\Input\Input.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Walnut\Input\KeyCodes.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Walnut\Layer.h" />
+    <ClInclude Include="src\Walnut\Random.h" />
+    <ClInclude Include="src\Walnut\Timer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Walnut\Application.cpp" />
+    <ClCompile Include="src\Walnut\ImGui\ImGuiBuild.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Walnut\Image.cpp" />
+    <ClCompile Include="src\Walnut\Input\Input.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Walnut\Random.cpp" />
+  </ItemGroup>
+</Project>
