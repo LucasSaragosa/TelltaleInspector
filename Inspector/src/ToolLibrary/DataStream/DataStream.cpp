@@ -13,12 +13,11 @@ HANDLE openfile_s_(const char* fp, const char* m) {
 	u32 acc{}, dsp{};
 	if (m[0] == 'r') {
 		dsp |= OPEN_ALWAYS;
-		acc |= GENERIC_READ;
 	}
 	else {
 		dsp |= CREATE_ALWAYS;
-		acc |= GENERIC_WRITE;
 	}
+	acc = GENERIC_READ | GENERIC_WRITE;
 	HANDLE f = CreateFileA(fp, acc, 0, 0, dsp, FILE_ATTRIBUTE_NORMAL, 0);
 	if (!f) {
 		static const char* fmt = "Could not open file %s";

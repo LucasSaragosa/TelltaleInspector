@@ -46,6 +46,7 @@ extern "C" {
 #include "stb/std_image_write.h"
 #include "squish/squish.h"
 #include "imstd/imgui_memedit.h"
+#include "ToolLibrary/types/Scene.h"
 
 inline void* operator new(size_t s) {
 	return (void*)calloc(1, s);
@@ -62,9 +63,14 @@ inline void* operator new(size_t s) {
 " Please also note, old games before the wolf among us will not work in this tool (they may work for few small files.) This app should be used mainly for "\
 "new games such as the walking dead collection, etc."
 
+enum InspectorSettingsFlags {
+	eISF_ShownTTArchMessage = 1
+};
+
 struct InspectorSettings {
 
 	bool mbShownIntroMessage = false;
+	Flags mFlags;
 
 	static METAOP_FUNC_IMPL__(SerializeAsync) {
 		MetaOpResult result = Meta::MetaOperation_SerializeAsync(pObj, pObjDescription, pContextDescription, pUserData);
@@ -75,12 +81,14 @@ struct InspectorSettings {
 		static MetaClassDescription meta_set{};
 		if (meta_set.mFlags.mFlags & Internal_MetaFlag_Initialized)
 			return &meta_set;
+		MetaClassDescription& meta_flags = *::GetMetaClassDescription<Flags>();
 		MetaClassDescription& meta_bool = *::GetMetaClassDescription<bool>();
 		{
 			DEFINET_3(set, InspectorSettings);
 			meta_set.mbHiddenInternal = true;
 			EXT(set, ttcfg);
 			FIRSTMEM2(set, mbShownIntroMessage, InspectorSettings, bool, 0);
+			NEXTMEM2(set, mFlags, InspectorSettings, flags, 0, mbShownIntroMessage);
 			SERIALIZER(set, InspectorSettings);
 			ADD(set);
 			return &meta_set;
@@ -93,6 +101,13 @@ bool starts_with(const char* pre, const char* str)
 {
 	return strncmp(pre, str, strlen(pre)) == 0;
 }
+
+inline bool ends_with(const std::string& value, std::string ending)
+{
+	if (ending.size() > value.size()) return false;
+	return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
 
 template< typename T >
 std::string to_symbol(T i)
@@ -431,6 +446,7 @@ public:
 		ImGui::Checkbox("Zlib Compressed", &bCompressedZ);
 		ImGui::Checkbox("Oodle Compressed", &bCompressedOodle);
 		ImGui::Checkbox("Encrypted", &bEncrypted);
+		ImGui::Text("Version should be 0 (TTA2), 1 (TTA3) or 2 (TTA4). Any is OK, but TTA4 is used in most games.");
 		ImGui::InputInt("Version", (int*) & arch.mVersion);
 		if (arch.mVersion > 2 || arch.mVersion < 0)
 			arch.mVersion = 0;
@@ -464,6 +480,7 @@ public:
 							continue;
 						}
 					}
+					std::sort(file_names.begin(), file_names.end(), &filet_sorter);
 				}
 			}
 			if (ImGui::Button("Extract Selected") && file_names.size() > 0) {
@@ -581,10 +598,16 @@ public:
 				nfdchar_t* outPath = NULL;
 				nfdresult_t result = NFD_SaveDialog("ttarch2", 0, &outPath);
 				if (result == NFD_OKAY) {
-					MessageBoxA(0, "You are about to create an archive. Ensure the compression/encryption"
-						" is set, game is set and know that this may take time (~10s to 3-5mins).", "Create", MB_ICONINFORMATION);
+					if (!(sRuntime.settings.mFlags.mFlags & eISF_ShownTTArchMessage)) {
+						MessageBoxA(0, "You are about to create an archive. Ensure the compression/encryption"
+							" is set, game is set and know that this may take time (~10s to 3-5mins).", "Create", MB_ICONINFORMATION);
+						sRuntime.settings.mFlags |= eISF_ShownTTArchMessage;
+					}
 					int numinvalid = 0;
-					DataStreamFileDisc dst = _OpenDataStreamFromDisc_(outPath, WRITE);
+					std::string op = outPath;
+					if (ends_with(op, ".ttarch2"))
+						op += ".ttarch2";
+					DataStreamFileDisc dst = _OpenDataStreamFromDisc_(op.c_str(), WRITE);
 					if (dst.IsInvalid())
 						return;
 					printf("opening file streams...\n");
@@ -593,7 +616,7 @@ public:
 					entries.reserve(file_names.size());
 					for (auto& file : file_names) {
 						TTArchive2::ResourceCreateEntry entry{};
-						entry.name = _STD move(file.file);
+						entry.name = file.file;
 						if (file.path.size() == 0) {//from other ttarch
 							entry.mpStream = new DataStreamSubStream(arch.mpResourceStream, (unsigned __int64)file.sz, file.off);
 						}
@@ -618,15 +641,15 @@ public:
 						bCompressedOodle ? Compression::Library::OODLE : Compression::Library::ZLIB, arch.mVersion);
 					if (!result) {
 						MessageBoxA(0, "There was a problem creating the archive. Please contact me! (info tab)", "Error creating archive!", MB_ICONERROR);
-						mark_as_todelete();
 						return;
 					}
 					MessageBoxA(0, "Successfully created the archive!", "Success!", MB_ICONINFORMATION);
-					mark_as_todelete();
 				}
 			}
 		}
 		else {
+			ImGui::Text("Click open archive to import all files from an existing archive. You can only add one archive, and after that you can add files and directories from your filesystem.");
+			ImGui::Text("Click new archive to not import an existing archive, but create your own from scratch.");
 			if (ImGui::Button("Open Archive") && selected_game_id) {
 				nfdchar_t* outPath = NULL;
 				nfdresult_t result = NFD_OpenDialog("ttarch2", NULL, &outPath);
@@ -663,6 +686,7 @@ public:
 			}
 			else if (ImGui::Button("New Archive") && selected_game_id) {
 				bState = true;
+				arch.mVersion = 2;
 			}
 		}
 	}
@@ -922,12 +946,6 @@ public:
 	taskctor(HelpTask) {}
 
 };
-
-inline bool ends_with(const std::string& value, std::string ending)
-{
-	if (ending.size() > value.size()) return false;
-	return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
 
 struct imported_file {
 	std::string mName;
@@ -4397,20 +4415,6 @@ public:
 
 };
 
-/*class Task : public InspectorTask {
-
-	virtual void _render() override {
-
-	}
-
-public:
-
-	deleteme(Task)
-
-	taskctor(Task){}
-
-};*/
-
 typedef void (save_changes_fndecl)(PropertySet& prop, void* userdata);
 
 template<typename T>
@@ -4510,6 +4514,7 @@ private:
 				mh_handleRefType = TelltaleToolLib_FindMetaClassDescription(mcd.c_str(), true);
 				if (mh_handleRefType == nullptr) {
 					MessageBoxA(0, "Internal error please contact me: MH_HANDLEREFTYPE", "!!", MB_ICONERROR);
+					ImGui::EndPopup();
 					return true;
 				}
 				resolve_buf[0] = 0;
@@ -4643,6 +4648,7 @@ private:
 	}
 
 	bool PropTree_Math(u64 hash, void* pInst) {
+		ImGui::PushID(pInst);
 		if (hash == vec4_str || hash == quat_str) {
 			//ImGui::SameLine();
 			Vector4* vec = (Vector4*)pInst;//same as quat
@@ -4654,7 +4660,7 @@ private:
 			ImGui::PopStyleColor(3);
 
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &vec->x, 0.1f, 0.0f, 0.0f, "%.2f");
+			ImGui::DragFloat("##X", &vec->x, 0.1f, 0.0f, 0.0f, "%.2f");
 			//ImGui::SameLine();
 
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
@@ -4665,7 +4671,7 @@ private:
 			ImGui::PopStyleColor(3);
 
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &vec->y, 0.1f, 0.0f, 0.0f, "%.2f");
+			ImGui::DragFloat("##Y", &vec->y, 0.1f, 0.0f, 0.0f, "%.2f");
 			//ImGui::SameLine();
 
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
@@ -4676,14 +4682,14 @@ private:
 			ImGui::PopStyleColor(3);
 
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &vec->z, 0.1f, 0.0f, 0.0f, "%.2f");
+			ImGui::DragFloat("##Z", &vec->z, 0.1f, 0.0f, 0.0f, "%.2f");
 			//ImGui::SameLine();
 
 			if (ImGui::Button("W"))
 				vec->w = 0.0f;
 
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &vec->w, 0.1f, 0.0f, 0.0f, "%.2f");
+			ImGui::DragFloat("##W", &vec->w, 0.1f, 0.0f, 0.0f, "%.2f");
 
 		}
 		else if (hash == vec3_str) {
@@ -4697,7 +4703,7 @@ private:
 			ImGui::PopStyleColor(3);
 
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &vec->x, 0.1f, 0.0f, 0.0f, "%.2f");
+			ImGui::DragFloat("##X", &vec->x, 0.1f, 0.0f, 0.0f, "%.2f");
 			//ImGui::SameLine();
 
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
@@ -4708,7 +4714,7 @@ private:
 			ImGui::PopStyleColor(3);
 
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &vec->y, 0.1f, 0.0f, 0.0f, "%.2f");
+			ImGui::DragFloat("##Y", &vec->y, 0.1f, 0.0f, 0.0f, "%.2f");
 			//ImGui::SameLine();
 
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
@@ -4719,7 +4725,7 @@ private:
 			ImGui::PopStyleColor(3);
 
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &vec->z, 0.1f, 0.0f, 0.0f, "%.2f");
+			ImGui::DragFloat("##Z", &vec->z, 0.1f, 0.0f, 0.0f, "%.2f");
 
 		}
 		else if (hash == vec2_str) {
@@ -4733,7 +4739,7 @@ private:
 			ImGui::PopStyleColor(3);
 
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &vec->x, 0.1f, 0.0f, 0.0f, "%.2f");
+			ImGui::DragFloat("##X", &vec->x, 0.1f, 0.0f, 0.0f, "%.2f");
 			//ImGui::SameLine();
 
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
@@ -4744,7 +4750,7 @@ private:
 			ImGui::PopStyleColor(3);
 
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &vec->y, 0.1f, 0.0f, 0.0f, "%.2f");
+			ImGui::DragFloat("##Y", &vec->y, 0.1f, 0.0f, 0.0f, "%.2f");
 		}
 		else if (hash == tran_str) {
 			Transform* transform = (Transform*)pInst;
@@ -4764,9 +4770,13 @@ private:
 			PropTree_Math(vec3_str, &s->mCenter);
 			ImGui::Text("Radius:");
 			ImGui::SameLine();
-			ImGui::DragFloat("##", &s->mRadius, 0.1f, 0.0f, 0.f);
+			ImGui::DragFloat("##R", &s->mRadius, 0.1f, 0.0f, 0.f);
 		}
-		else return false;
+		else {
+			ImGui::PopID();
+			return false;
+		}
+		ImGui::PopID();
 		return true;
 	}
 
@@ -5737,6 +5747,7 @@ public:
 
 };
 
+
 class MeshTask : public InspectorTask {
 
 
@@ -6143,11 +6154,183 @@ public:
 
 };
 
+/*class Task : public InspectorTask {
+
+	virtual void _render() override {
+
+	}
+
+public:
+
+	deleteme(Task)
+
+	taskctor(Task){}
+
+};*/
+
 static void MeshPropDelegate(PropertySet& set, void* userdata) {
 	MeshTask* task = (MeshTask*)userdata;
 	task->open_index = -1;
 }//no save changes needed
 
+bool agent_sorter(Scene::AgentInfo*& lhs, Scene::AgentInfo*& rhs) {
+	std::less<std::string> strl{};
+	return strl(lhs->mAgentName, rhs->mAgentName);
+}
+
+class SceneTask : public InspectorTask {
+
+	friend void ScenePropDelegate(PropertySet& set, void* userdata);
+
+	MetaStream mStream;
+	Scene mScene;
+	const char* id = nullptr;
+	bool state = false;
+
+	int open_index = -1;
+	bool* open_gate = 0;
+
+	std::string newAgentName = "";
+
+	void sort_agents(){
+		mScene.mAgentList.sort(&agent_sorter);
+	}
+
+	virtual void _render() override {
+		if (id == nullptr) {
+			id = select_gameid_dropdown(id);
+		}else{
+			if (state) {
+				ImGui::Text("Hidden");
+				ImGui::SameLine();
+				ImGui::Checkbox("##", &mScene.mbHidden);
+				ImGui::Text("Name");
+				ImGui::SameLine();
+				ImGui::InputText("##", &mScene.mName);
+				if(ImGui::Button("Save")){
+					nfdchar_t* fp = 0;
+					if (NFD_SaveDialog("scene", 0, &fp) == NFD_OKAY) {
+						DataStreamFile_Win stream = _OpenDataStreamFromDisc_(fp, WRITE);
+						free(fp);
+						mStream.Open(&stream, MetaStreamMode::eMetaStream_Write, {});
+						mStream.mbDontDeleteStream = true;
+						if (PerformMetaSerializeAsync(&mStream, &mScene) != eMetaOp_Succeed) {
+							MessageBoxA(0, "Could not write scene file, please contact me!", "Error writing file", MB_ICONERROR);
+						}
+						else {
+							MessageBoxA(0, "Successfully saved scene file!", "Saved", MB_ICONINFORMATION);
+						}
+					}
+				}
+				if (ImGui::Button("Create New Agent")) {
+					if (open_index == -1)
+						ImGui::OpenPopup("Create Agent");
+					else
+						MessageBoxA(0, "Cannot create a new agent while you have an agent open currently", "Cannot open", MB_ICONERROR);
+				}
+				if (ImGui::BeginPopupModal("Create Agent")) {
+					ImGui::Text("Agent Name");
+					ImGui::InputText("##", &newAgentName);
+					if(ImGui::Button("Create")){
+						if(newAgentName == "" || mScene.GetAgent(newAgentName.c_str())){
+							MessageBoxA(0, "That agent already exists or you have not entered a name!", "!!", MB_ICONERROR);
+						}
+						else {
+							ImGui::CloseCurrentPopup();
+							newAgentName = "";
+						}
+						mScene.CreateAgent(std::move(newAgentName));
+						sort_agents();
+					}
+					if(ImGui::Button("Exit")){
+						ImGui::CloseCurrentPopup();
+						newAgentName = "";
+					}
+					ImGui::EndPopup();
+				}
+				ImGui::Text("To delete an agent, hover over its name and use Ctrl+D");
+				ImGui::Text("Agents");
+				if (ImGui::BeginTable("agentstab", 2, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable)) {
+					int index = 0;
+					for(auto it = mScene.mAgentList.begin(); it != mScene.mAgentList.end(); it++){
+						Scene::AgentInfo* pAgent = *it;
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						
+						bool node_open = ImGui::TreeNode(pAgent->mAgentName.c_str());
+						ImGui::TableSetColumnIndex(1);
+						if (ImGui::IsItemHovered() && ImGui::IsKeyReleased(ImGuiKey_D) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+							if (open_index == -1) {
+								mScene.mAgentList.remove(*it);
+								break;
+							}else{
+								MessageBoxA(0, "Cannot delete an agent while you have an agent open currently", "Cannot delete", MB_ICONERROR);
+							}
+						}
+						ImGui::PushID(index);
+						if (ImGui::Button("Open Agent Props")) {
+							if (open_index != -1) {
+								MessageBoxA(0, "You already have a scene agent open, you can only edit one a time!", "Could not open", MB_ICONERROR);
+							}
+							else {
+								open_index = index;
+								PropertySet* set = (PropertySet*)&pAgent->mAgentSceneProps;
+								std::string& nm = pAgent->mAgentName;
+								PropTask* task = new PropTask(nm.c_str(), sRuntime.gen_id());
+								sRuntime.queued.push_back(task);
+								if (sRuntime.gates.size() == 0)
+									sRuntime.gates.reserve(4096);
+								sRuntime.gates.push_back(1);
+								open_gate = (bool*)(sRuntime.gates.data() + sRuntime.gates.size() - 1);
+								task->set_prop(std::string(nm), open_gate, id, &ScenePropDelegate, set, this);
+							}
+						}
+						ImGui::PopID();
+						if (node_open)
+							ImGui::TreePop();
+						index++;
+					}
+					ImGui::EndTable();
+				}
+			}else{
+				ImGui::Text("Click NEW to create a new scene and OPEN to open an existing scene to edit");
+				if(ImGui::Button("New")){
+					state = true;
+					mScene.mbHidden = false;
+					mScene.mName = "adv_myNewScene.scene";
+				}
+				if(ImGui::Button("Open")){
+					nfdchar_t* fp{};
+					if(NFD_OpenDialog("scene",0,&fp) == NFD_OKAY){
+						DataStreamFile_Win stream = _OpenDataStreamFromDisc_(fp, READ);
+						free(fp);
+						mStream.Open(&stream, MetaStreamMode::eMetaStream_Read, {});
+						mStream.mbDontDeleteStream = true;
+						if(PerformMetaSerializeAsync(&mStream, &mScene) != eMetaOp_Succeed){
+							MessageBoxA(0, "Could not read scene file, please contact me!", "Error reading file", MB_ICONERROR);
+						}else{
+							state = true;
+							sort_agents();
+						}
+					}
+				}
+			}
+		}
+	}
+
+public:
+
+	deleteme(SceneTask)
+
+	taskctor(SceneTask) {}
+
+};
+
+static void ScenePropDelegate(PropertySet& set, void* userdata) {
+	SceneTask* task = (SceneTask*)userdata;
+	task->open_index = -1;
+}//no save changes needed
 
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 {
@@ -6284,6 +6467,10 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 			}
 			if (ImGui::MenuItem("Open Prop")) {
 				PropTask* task = new PropTask("Property Editor", sRuntime.gen_id());
+				sRuntime.open_tasks.push_back(task);
+			}
+			if (ImGui::MenuItem("Open Scene")) {
+				SceneTask* task = new SceneTask("Scene Editor", sRuntime.gen_id());
 				sRuntime.open_tasks.push_back(task);
 			}
 			ImGui::EndMenu();

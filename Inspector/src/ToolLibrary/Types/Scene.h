@@ -99,6 +99,14 @@ struct Scene {//only included whats serialized and needed. this is a very very b
 		return result;
 	}
 
+	AgentInfo* GetAgent(const char* name){
+		for (auto it = mAgentList.begin(); it != mAgentList.end(); it++) {
+			if ((*it)->mAgentName == name)
+				return *it;
+		}
+		return 0;
+	}
+
 	AgentInfo* CreateAgent(String pAgentName) {
 		AgentInfo* info = new AgentInfo;
 		info->mAgentName = pAgentName;
