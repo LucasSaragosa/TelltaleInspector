@@ -6182,7 +6182,7 @@ class SceneTask : public InspectorTask {
 
 	friend void ScenePropDelegate(PropertySet& set, void* userdata);
 
-	MetaStream mStream;
+	MetaStream mmStream;
 	Scene mScene;
 	const char* id = nullptr;
 	bool state = false;
@@ -6212,9 +6212,11 @@ class SceneTask : public InspectorTask {
 					if (NFD_SaveDialog("scene", 0, &fp) == NFD_OKAY) {
 						DataStreamFile_Win stream = _OpenDataStreamFromDisc_(fp, WRITE);
 						free(fp);
-						mStream.Open(&stream, MetaStreamMode::eMetaStream_Write, {});
-						mStream.mbDontDeleteStream = true;
-						if (PerformMetaSerializeAsync(&mStream, &mScene) != eMetaOp_Succeed) {
+						MetaStream s{};
+						s.InjectVersionInfo(mmStream);
+						s.Open(&stream, MetaStreamMode::eMetaStream_Write, {});
+						s.mbDontDeleteStream = true;
+						if (PerformMetaSerializeAsync(&s, &mScene) != eMetaOp_Succeed) {
 							MessageBoxA(0, "Could not write scene file, please contact me!", "Error writing file", MB_ICONERROR);
 						}
 						else {
@@ -6305,6 +6307,7 @@ class SceneTask : public InspectorTask {
 					if(NFD_OpenDialog("scene",0,&fp) == NFD_OKAY){
 						DataStreamFile_Win stream = _OpenDataStreamFromDisc_(fp, READ);
 						free(fp);
+						MetaStream mStream;
 						mStream.Open(&stream, MetaStreamMode::eMetaStream_Read, {});
 						mStream.mbDontDeleteStream = true;
 						if(PerformMetaSerializeAsync(&mStream, &mScene) != eMetaOp_Succeed){
@@ -6313,6 +6316,7 @@ class SceneTask : public InspectorTask {
 							state = true;
 							sort_agents();
 						}
+						mmStream.InjectVersionInfo(mStream);
 					}
 				}
 			}
