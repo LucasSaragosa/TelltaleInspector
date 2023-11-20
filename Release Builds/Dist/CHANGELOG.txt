@@ -1,0 +1,7 @@
+v1.0.1A:
+-Initial release
+v1.0.2A:
+-Scene agent property key database updates
+-TTArchive2 and data stream bug fixes, saving now works
+-Scene file support loading and saving
+-Generic bug fixes
