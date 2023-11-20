@@ -9,6 +9,9 @@ PROP files are a set of properties: key and value pairs. Keys are symbols which 
 of those Symbol<XXX> keys as possible.
 PROP files are used a lot in the engine and editing them can be a powerful way to change file references and model swap easily.
 
+### Edit & Create .SCENE files
+With this tool you can open and edit scene files and edit agent data. You can save back the scene file and then load it in game.
+
 ### Edit .D3DMESH files
 D3DMesh files contain .PROP files inside them for most materials. This tool lets you modify those prop files and resave the mesh allowing you to
 manage the materials and their properties and parameters (if you know what you are doing). 
