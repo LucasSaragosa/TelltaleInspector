@@ -52,7 +52,7 @@ inline void* operator new(size_t s) {
 	return (void*)calloc(1, s);
 }
 
-#define APP_VERSION "ALPHA v1.0.1"
+#define APP_VERSION "ALPHA v1.0.2"
 
 #define APP_HELP_DESC " Use the toolbar to open windows to mod specific files. This app can at the moment: "\
 "edit prop files, create and extract TTARCH2 archives, extract .BANK sound data to OGG files, open any file raw data and export to JSON, "  \
