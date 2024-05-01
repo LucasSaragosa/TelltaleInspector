@@ -2,7 +2,7 @@
 This is a modding application which aims to allow modders to mod newer games made by the Telltale Tool (Telltale Games).
 For developers wishing to know more about internally how it works, please scroll to the bottom.
 
-<strong>PLEASE DONATE. I PUT LOTS OF TIME INTO THESE TOOLS! [Donation Page](https://www.justgiving.com/crowdfunding/ttinspector)</strong>
+<strong>PLEASE DONATE. I PUT LOTS OF TIME INTO THESE TOOLS! [Donation Page](https://www.gofundme.com/manage/mcsm-in-minecraft)</strong>
 
 ## What this app can do
 
