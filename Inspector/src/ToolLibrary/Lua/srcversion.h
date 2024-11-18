@@ -1,6 +1,0 @@
-#ifndef LUADEC_SRCVERSION_H
-#define LUADEC_SRCVERSION_H
-
-#define SRCVERSION "$WCREV$"
-
-#endif // #ifndef LUADEC_SRCVERSION_H

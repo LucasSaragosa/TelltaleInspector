@@ -15,11 +15,17 @@ namespace Walnut {
 			app->Run();
 			delete app;
 		}
-
+		//_CrtDumpMemoryLeaks();
 		return 0;
 	}
 
 }
+
+int main(int argc, char** argv)
+{
+	return Walnut::Main(argc, argv);
+}
+
 
 #ifdef WL_RELEASE
 
@@ -28,13 +34,6 @@ namespace Walnut {
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
 {
 	return Walnut::Main(__argc, __argv);
-}
-
-#else
-
-int main(int argc, char** argv)
-{
-	return Walnut::Main(argc, argv);
 }
 
 #endif // WL_DIST

@@ -1,0 +1,8 @@
+-chore editor
+-dlog editor
+-soundeventname<> change typename display string in props
+-audio guids to sound file names (and user overrides) for sound event references in props etc. 
+
+-URGENT: cannot create elements in empty arrays (check maps too) highlighted element check should be the list prop not elem
+-fix unknown scene file types
+-fix scene dcarray t3lightsceneinternaldata something error

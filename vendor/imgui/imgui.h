@@ -250,6 +250,14 @@ typedef void    (*ImGuiSizeCallback)(ImGuiSizeCallbackData* data);              
 typedef void*   (*ImGuiMemAllocFunc)(size_t sz, void* user_data);               // Function signature for ImGui::SetAllocatorFunctions()
 typedef void    (*ImGuiMemFreeFunc)(void* ptr, void* user_data);                // Function signature for ImGui::SetAllocatorFunctions()
 
+struct ImVec3
+{
+    float                                           x, y, z;
+    constexpr inline ImVec3() : x(0.f), y(0.f), z(0.f) {}
+    constexpr inline ImVec3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
+
+};
+
 // ImVec2: 2D vector used to store positions, sizes etc. [Compile-time configurable type]
 // This is a frequently used type in the API. Consider using IM_VEC2_CLASS_EXTRA to create implicit cast from/to our preferred type.
 IM_MSVC_RUNTIME_CHECKS_OFF
@@ -271,6 +279,7 @@ struct ImVec4
     float                                           x, y, z, w;
     ImVec4()                                        { x = y = z = w = 0.0f; }
     ImVec4(float _x, float _y, float _z, float _w)  { x = _x; y = _y; z = _z; w = _w; }
+    ImVec4(ImVec3 v3, float _w = 1.0f) : ImVec4(v3.x, v3.y, v3.z, _w) {}
 #ifdef IM_VEC4_CLASS_EXTRA
     IM_VEC4_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h to convert back and forth between your math types and ImVec4.
 #endif
